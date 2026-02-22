@@ -1,0 +1,16 @@
+{
+    "name": "NursePay Pro",
+    "short_name": "NursePay",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#F8FAFC",
+    "theme_color": "#1E293B",
+    "icons": [
+      {
+        "src": "https://cdn-icons-png.flaticon.com/512/2371/2371455.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any maskable"
+      }
+    ]
+  }
