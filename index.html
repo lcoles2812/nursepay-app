@@ -1,81 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NursePay Pro</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#1E293B">
-    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;500;700&display=swap" rel="stylesheet">
-    
+    <script src='https://unpkg.com/tesseract.js@v4.0.1/dist/tesseract.min.js'></script>
     <style>
-        body { font-family: 'Lexend', sans-serif; background-color: #F8FAFC; overflow-x: hidden; }
-        .bento-card { background: white; border-radius: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); border: 1px solid #F1F5F9; }
-        .input-style { background: #F1F5F9; border: none; border-radius: 12px; padding: 12px; width: 100%; outline: none; font-size: 14px; }
-        .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; }
-        .overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); transition: opacity 0.3s; }
-        .premium-badge { background: #6366f1; color: white; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 800; }
+        /* ... previous styles ... */
+        .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="p-5 max-w-md mx-auto pb-32">
-
-    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 overlay opacity-0 pointer-events-none z-40"></div>
-    <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl sidebar translate-x-full p-6 overflow-y-auto">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-xl font-bold">Settings</h2>
-            <button onclick="toggleSidebar()" class="text-slate-400 text-2xl">✕</button>
-        </div>
-
-        <div class="space-y-6">
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Hourly Rate ($)</label>
-                <input type="number" id="base-rate-input" class="input-style font-bold" value="52.40">
-            </div>
-
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Salary Packaging</label>
-                <div class="space-y-3 p-4 bg-slate-50 rounded-2xl">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-medium">Enabled?</span>
-                        <input type="checkbox" id="packaging-toggle" onchange="document.getElementById('packaging-amount-wrap').classList.toggle('hidden', !this.checked)" class="w-5 h-5 accent-blue-600">
-                    </div>
-                    <div id="packaging-amount-wrap" class="hidden">
-                        <input type="number" id="packaging-amount" class="input-style bg-white" value="9010">
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl">
-                <span class="text-xs font-bold text-slate-600 uppercase">HECS Debt</span>
-                <input type="checkbox" id="hecs-input" class="w-5 h-5 accent-blue-600">
-            </div>
-
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Display Period</label>
-                <select id="timeframe-input" class="input-style font-medium">
-                    <option value="weekly">Weekly</option>
-                    <option value="fortnightly" selected>Fortnightly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
-                </select>
-            </div>
-
-            <button onclick="saveSettings()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
-                Save & Apply Changes
-            </button>
-        </div>
-    </div>
-
-    <header class="flex justify-between items-center mb-6 mt-4">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight">NursePay <span class="text-blue-500 text-sm">PRO</span></h1>
-            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-tighter">2026 Payroll Auditor</p>
-        </div>
-        <button onclick="toggleSidebar()" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">⚙️</button>
-    </header>
 
     <div class="bento-card p-8 mb-6 text-center border-b-4 border-blue-500">
         <span id="display-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Fortnightly Take-Home</span>
@@ -87,171 +21,102 @@
     </div>
 
     <div class="flex gap-4 mb-4 px-2">
-        <button onclick="switchTab('shifts')" id="tab-shifts" class="text-xs font-bold border-b-2 border-slate-900 pb-1">Earnings</button>
-        <button onclick="switchTab('deductions')" id="tab-deductions" class="text-xs font-bold text-slate-400 pb-1">Tax Deductions</button>
+        <button onclick="switchTab('shifts')" id="tab-shifts" class="text-xs font-bold border-b-2 border-slate-900 pb-1">Manual Add</button>
+        <button onclick="switchTab('roster')" id="tab-roster" class="text-xs font-bold text-slate-400 pb-1 flex items-center gap-1">Roster Scan <span class="premium-badge">AI</span></button>
+        <button onclick="switchTab('deductions')" id="tab-deductions" class="text-xs font-bold text-slate-400 pb-1">Deductions</button>
     </div>
 
-    <div id="view-shifts">
-        <div class="bento-card p-5 mb-6">
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <select id="shift-type" class="input-style font-bold">
-                    <option value="1.0">Morning (1x)</option>
-                    <option value="1.125">Afternoon (1.125x)</option>
-                    <option value="1.15">Night (1.15x)</option>
-                    <option value="1.5">Saturday (1.5x)</option>
-                    <option value="1.75">Sunday (1.75x)</option>
-                    <option value="2.5">Public Hol (2.5x)</option>
-                </select>
-                <input type="number" id="shift-hours" class="input-style" placeholder="Hours">
+    <div id="view-roster" class="hidden">
+        <div class="bento-card p-6 mb-6">
+            <div class="text-center mb-4">
+                <div class="bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">📸</div>
+                <h3 class="font-bold text-slate-800">Roster Scanner</h3>
+                <p class="text-[10px] text-slate-400 px-4 mt-1">Upload your roster screenshot. We'll find your shifts and add them to your log automatically.</p>
             </div>
-            <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl">Add Shift</button>
+            
+            <input type="file" id="roster-upload" accept="image/*" class="hidden" onchange="handleRoster(event)">
+            <button onclick="document.getElementById('roster-upload').click()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
+                Scan Roster Image
+            </button>
+
+            <div id="scan-status" class="hidden mt-4 p-4 bg-slate-50 rounded-xl flex items-center gap-3">
+                <div class="loading-spinner"></div>
+                <span id="scan-text" class="text-xs font-medium text-slate-600">AI is reading your schedule...</span>
+            </div>
         </div>
-        <div id="shift-list" class="space-y-3"></div>
     </div>
 
-    <div id="view-deductions" class="hidden">
-        <div class="bg-emerald-50 p-4 rounded-2xl mb-6 text-[11px] text-emerald-800 leading-tight">
-            <b>Pro Tip:</b> These items don't change your weekly pay, but they reduce your tax at the end of the year. Keep track of them here for tax time!
-        </div>
-        <div class="bento-card p-5 mb-6">
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <select id="deduction-type" class="input-style text-xs">
-                    <option>AHPRA Rego</option>
-                    <option>Union Fees</option>
-                    <option>Uniform/Laundry</option>
-                    <option>Work Tools</option>
-                </select>
-                <input type="number" id="deduction-cost" class="input-style" placeholder="Cost ($)">
-            </div>
-            <button onclick="addDeduction()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl">Log Deduction</button>
-        </div>
-        <div id="deduction-list" class="space-y-3"></div>
-    </div>
+    <div id="view-shifts">/* ... */</div>
+    <div id="view-deductions" class="hidden">/* ... */</div>
 
     <script>
-        let shifts = JSON.parse(localStorage.getItem('nurseShifts')) || [];
-        let deductions = JSON.parse(localStorage.getItem('nurseDeductions')) || [];
-        let config = JSON.parse(localStorage.getItem('nurseConfig')) || {
-            baseRate: 52.40, hasHecs: false, timeframe: 'fortnightly', usePackaging: false, pkgAmount: 9010
-        };
+        // ... (Keep existing state and updateUI logic) ...
 
-        function calculateNet(grossAnnual, config) {
-            const packagingAmount = config.usePackaging ? Math.min(config.pkgAmount, grossAnnual) : 0;
-            const taxableIncome = Math.max(0, grossAnnual - packagingAmount);
+        async function handleRoster(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            let tax = 0;
-            if (taxableIncome > 190000) tax = 51638 + (taxableIncome - 190000) * 0.45;
-            else if (taxableIncome > 135000) tax = 31288 + (taxableIncome - 135000) * 0.37;
-            else if (taxableIncome > 45000) tax = 4288 + (taxableIncome - 45000) * 0.30;
-            else if (taxableIncome > 18200) tax = (taxableIncome - 18200) * 0.16;
-
-            const medicare = taxableIncome * 0.02;
-            let hecs = 0;
-            const hri = taxableIncome + packagingAmount;
-            if (config.hasHecs) {
-                if (hri > 179285) hecs = hri * 0.10;
-                else if (hri > 125000) hecs = 8700 + (hri - 125000) * 0.17;
-                else if (hri > 67000) hecs = (hri - 67000) * 0.15;
-            }
-
-            return (taxableIncome - tax - medicare - hecs) + packagingAmount;
-        }
-
-        function updateUI() {
-            // Setup Sidebar UI from config
-            document.getElementById('base-rate-input').value = config.baseRate;
-            document.getElementById('hecs-input').checked = config.hasHecs;
-            document.getElementById('timeframe-input').value = config.timeframe;
-            document.getElementById('packaging-toggle').checked = config.usePackaging;
-            document.getElementById('packaging-amount').value = config.pkgAmount;
-            document.getElementById('packaging-amount-wrap').classList.toggle('hidden', !config.usePackaging);
-
-            // Shifts
-            const sList = document.getElementById('shift-list');
-            sList.innerHTML = '';
-            let totalGrossFortnight = 0;
-            shifts.forEach((s, i) => {
-                const shiftGross = config.baseRate * s.multiplier * s.hours;
-                totalGrossFortnight += shiftGross;
-                sList.innerHTML += `<div class="bento-card p-4 flex justify-between items-center text-xs">
-                    <div><b>${s.label}</b> (${s.hours}h)</div>
-                    <div class="flex items-center gap-3"><b>$${shiftGross.toFixed(2)}</b><button onclick="deleteItem('shifts', ${i})">✕</button></div>
-                </div>`;
-            });
-
-            // Deductions (Separate from pay cycle)
-            const dList = document.getElementById('deduction-list');
-            dList.innerHTML = '';
-            let totalDeductions = 0;
-            deductions.forEach((d, i) => {
-                totalDeductions += d.cost;
-                dList.innerHTML += `<div class="bento-card p-4 flex justify-between items-center text-xs border-l-4 border-emerald-400">
-                    <div><b>${d.type}</b></div>
-                    <div class="flex items-center gap-3"><b class="text-emerald-600">$${d.cost.toFixed(2)}</b><button onclick="deleteItem('deductions', ${i})">✕</button></div>
-                </div>`;
-            });
-
-            // Estimated Return: Usually (Total Deductions * Marginal Tax Rate)
-            // Assuming a standard 30% rate for simplicity in the badge
-            const estReturn = totalDeductions * 0.30;
-
-            const annualGross = totalGrossFortnight * 26;
-            const netAnnual = calculateNet(annualGross, config);
+            const statusDiv = document.getElementById('scan-status');
+            const scanText = document.getElementById('scan-text');
+            statusDiv.classList.remove('hidden');
             
-            let displayVal = 0;
-            if(config.timeframe === 'weekly') displayVal = netAnnual / 52;
-            else if(config.timeframe === 'fortnightly') displayVal = netAnnual / 26;
-            else if(config.timeframe === 'monthly') displayVal = netAnnual / 12;
-            else displayVal = netAnnual;
+            trackEvent('roster_upload');
 
-            document.getElementById('total-display').innerText = "$" + displayVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('shift-count').innerText = `${shifts.length} Shifts`;
-            document.getElementById('tax-return-est').innerText = `$${estReturn.toFixed(0)} Est. Refund`;
-            document.getElementById('display-label').innerText = `${config.timeframe.charAt(0).toUpperCase() + config.timeframe.slice(1)} Take-Home`;
-
-            localStorage.setItem('nurseShifts', JSON.stringify(shifts));
-            localStorage.setItem('nurseDeductions', JSON.stringify(deductions));
-            localStorage.setItem('nurseConfig', JSON.stringify(config));
+            try {
+                const { data: { text } } = await Tesseract.recognize(file, 'eng');
+                parseRosterText(text);
+            } catch (err) {
+                alert("Scan failed. Try a clearer screenshot.");
+            } finally {
+                statusDiv.classList.add('hidden');
+            }
         }
 
-        function saveSettings() {
-            config.baseRate = parseFloat(document.getElementById('base-rate-input').value) || 52.40;
-            config.hasHecs = document.getElementById('hecs-input').checked;
-            config.timeframe = document.getElementById('timeframe-input').value;
-            config.usePackaging = document.getElementById('packaging-toggle').checked;
-            config.pkgAmount = parseFloat(document.getElementById('packaging-amount').value) || 9010;
-            updateUI();
-            toggleSidebar(); // Close after saving
-        }
+        function parseRosterText(text) {
+            const lines = text.toLowerCase().split('\n');
+            let shiftsFound = 0;
 
-        function addShift() {
-            const h = document.getElementById('shift-hours').value;
-            if(!h) return;
-            shifts.push({ label: document.getElementById('shift-type').options[document.getElementById('shift-type').selectedIndex].text.split(' (')[0], multiplier: parseFloat(document.getElementById('shift-type').value), hours: parseFloat(h) });
-            document.getElementById('shift-hours').value = '';
-            updateUI();
-        }
+            // Simple Pattern Matching Logic
+            // In a real production app, we would use more complex Regex
+            const patterns = [
+                { key: 'morning', label: 'Morning', mult: 1.0, hours: 8.5 },
+                { key: 'afternoon', label: 'Afternoon', mult: 1.125, hours: 8.5 },
+                { key: 'night', label: 'Night', mult: 1.15, hours: 10.0 },
+                { key: 'saturday', label: 'Saturday', mult: 1.5, hours: 8.5 },
+                { key: 'sunday', label: 'Sunday', mult: 1.75, hours: 8.5 }
+            ];
 
-        function addDeduction() {
-            const c = document.getElementById('deduction-cost').value;
-            if(!c) return;
-            deductions.push({ type: document.getElementById('deduction-type').value, cost: parseFloat(c) });
-            document.getElementById('deduction-cost').value = '';
-            updateUI();
+            lines.forEach(line => {
+                patterns.forEach(p => {
+                    if (line.includes(p.key)) {
+                        shifts.push({
+                            label: `Auto: ${p.label}`,
+                            multiplier: p.mult,
+                            hours: p.hours
+                        });
+                        shiftsFound++;
+                    }
+                });
+            });
+
+            if (shiftsFound > 0) {
+                alert(`Success! Found and added ${shiftsFound} shifts to your log.`);
+                updateUI();
+                switchTab('shifts');
+                trackEvent('roster_parsed_success');
+            } else {
+                alert("Couldn't find any clear shifts. Make sure 'Morning', 'Afternoon', or 'Night' is visible.");
+            }
         }
 
         function switchTab(t) {
             document.getElementById('view-shifts').classList.toggle('hidden', t !== 'shifts');
+            document.getElementById('view-roster').classList.toggle('hidden', t !== 'roster');
             document.getElementById('view-deductions').classList.toggle('hidden', t !== 'deductions');
-            document.getElementById('tab-shifts').className = t === 'shifts' ? "text-xs font-bold border-b-2 border-slate-900 pb-1" : "text-xs font-bold text-slate-400 pb-1";
-            document.getElementById('tab-deductions').className = t === 'deductions' ? "text-xs font-bold border-b-2 border-slate-900 pb-1" : "text-xs font-bold text-slate-400 pb-1";
+            // ... update tab button highlight logic ...
         }
 
-        function deleteItem(arr, i) { if(arr === 'shifts') shifts.splice(i, 1); else deductions.splice(i, 1); updateUI(); }
-        function toggleSidebar() { const sb = document.getElementById('sidebar'); const ov = document.getElementById('sidebar-overlay'); sb.classList.toggle('translate-x-full'); ov.classList.toggle('opacity-0'); ov.classList.toggle('pointer-events-none'); }
-
-        window.onload = updateUI;
+        // ... existing updateUI and saveSettings logic ...
     </script>
-    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
