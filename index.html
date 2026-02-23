@@ -4,212 +4,222 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NursePay Pro</title>
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NursePay">
     <meta name="theme-color" content="#1E293B">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2371/2371455.png">
-    
     <link rel="manifest" href="manifest.json">
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('SW Registered!', reg))
-            .catch(err => console.log('SW Registration Failed', err));
-        });
-      }
-    </script>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;500;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Lexend', sans-serif; background-color: #F8FAFC; color: #1E293B; }
+        body { font-family: 'Lexend', sans-serif; background-color: #F8FAFC; overflow-x: hidden; }
         .bento-card { background: white; border-radius: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); border: 1px solid #F1F5F9; }
-        .input-style { background: #F1F5F9; border: none; border-radius: 12px; padding: 12px; width: 100%; outline: none; }
-        .input-style:focus { ring: 2px solid #3B82F6; }
+        .input-style { background: #F1F5F9; border: none; border-radius: 12px; padding: 12px; width: 100%; outline: none; font-size: 14px; }
+        .sidebar { transition: transform 0.3s ease-in-out; z-index: 50; }
+        .overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); transition: opacity 0.3s; }
     </style>
 </head>
 <body class="p-5 max-w-md mx-auto pb-32">
 
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 overlay opacity-0 pointer-events-none z-40"></div>
+    <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl sidebar translate-x-full p-6 overflow-y-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-bold">Pay Settings</h2>
+            <button onclick="toggleSidebar()" class="text-slate-400 text-2xl">✕</button>
+        </div>
+
+        <div class="space-y-6">
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Base Hourly Rate ($)</label>
+                <input type="number" id="base-rate-input" onchange="updateSettings()" class="input-style font-bold text-lg" value="52.40">
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Student Debt (HECS/HELP)</label>
+                <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
+                    <input type="checkbox" id="hecs-input" onchange="updateSettings()" class="w-5 h-5 accent-blue-600">
+                    <span class="text-sm font-medium text-slate-700">I have a HECS debt</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Display Mode</label>
+                <select id="timeframe-input" onchange="updateSettings()" class="input-style font-medium">
+                    <option value="weekly">Weekly Take-Home</option>
+                    <option value="fortnightly" selected>Fortnightly Take-Home</option>
+                    <option value="monthly">Monthly Take-Home</option>
+                    <option value="yearly">Yearly Take-Home</option>
+                </select>
+            </div>
+            
+            <div class="pt-6 border-t border-slate-100">
+                <p class="text-[10px] text-slate-400 leading-relaxed italic">Calculations based on 2025-2026 ATO Resident Tax Scales & 2% Medicare Levy.</p>
+            </div>
+        </div>
+    </div>
+
     <header class="flex justify-between items-center mb-6 mt-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight">NursePay <span class="text-blue-500 font-medium text-sm">PRO</span></h1>
-            <p class="text-slate-400 text-xs uppercase tracking-widest font-bold">2026 Payroll Auditor</p>
+            <h1 class="text-2xl font-bold tracking-tight">NursePay <span class="text-blue-500 text-sm">PRO</span></h1>
+            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-tighter">Personal Payroll Auditor</p>
         </div>
-        <button onclick="archiveFortnight()" class="bg-slate-100 p-3 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-200">Reset & Archive</button>
+        <div class="flex gap-2">
+            <button onclick="toggleSidebar()" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-lg">⚙️</button>
+        </div>
     </header>
 
-    <div class="bento-card p-8 mb-6 text-center">
-        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Estimated Take-Home</span>
+    <div class="bento-card p-8 mb-6 text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+        <span id="display-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Fortnightly Take-Home</span>
         <div id="total-display" class="text-5xl font-bold text-slate-900 my-2 tracking-tighter">$0.00</div>
         <div class="flex justify-center gap-2 mt-2">
-            <span id="shift-count" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold">0 SHIFTS</span>
-            <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold">POST-TAX (EST)</span>
+            <span id="shift-count" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">0 Shifts</span>
+            <span id="tax-impact" class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase">Tax Ready</span>
         </div>
     </div>
 
     <div class="bento-card p-6 mb-6">
-        <h2 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="text-blue-500 text-xl leading-none">＋</span> Add Shift
-        </h2>
-        <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-3">
-                <select id="shift-type" class="input-style text-sm font-medium">
-                    <option value="1.0">Morning (1x)</option>
-                    <option value="1.125">Afternoon (1.125x)</option>
-                    <option value="1.15">Night (1.15x)</option>
-                    <option value="1.5">Saturday (1.5x)</option>
-                    <option value="1.75">Sunday (1.75x)</option>
-                    <option value="2.5">Public Hol (2.5x)</option>
-                </select>
-                <input type="number" id="shift-hours" class="input-style text-sm" placeholder="Hours (e.g. 8.5)">
-            </div>
-            <textarea id="shift-note" class="input-style text-sm h-20" placeholder="Notes (e.g. 'Late start, missed break')"></textarea>
-            <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:opacity-90 active:scale-[0.98] transition-all shadow-lg">
-                Add to Fortnight
-            </button>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <select id="shift-type" class="input-style font-bold">
+                <option value="1.0">Morning (1x)</option>
+                <option value="1.125">Afternoon (1.125x)</option>
+                <option value="1.15">Night (1.15x)</option>
+                <option value="1.5">Saturday (1.5x)</option>
+                <option value="1.75">Sunday (1.75x)</option>
+                <option value="2.5">Public Hol (2.5x)</option>
+            </select>
+            <input type="number" id="shift-hours" class="input-style" placeholder="Hours (8.5)">
         </div>
+        <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform shadow-lg shadow-slate-200">
+            Add to Fortnight
+        </button>
     </div>
 
-    <div class="flex gap-4 mb-4 px-2">
-        <button onclick="switchTab('current')" id="tab-current" class="text-sm font-bold border-b-2 border-slate-900 pb-1">Current</button>
-        <button onclick="switchTab('history')" id="tab-history" class="text-sm font-bold text-slate-400 pb-1">Archive</button>
+    <div class="flex justify-between items-end mb-4 px-2">
+        <h3 class="font-bold text-slate-800">Current Log</h3>
+        <button onclick="archiveFortnight()" class="text-blue-600 text-[11px] font-bold uppercase tracking-wider">Finish Fortnight →</button>
     </div>
-
-    <div id="current-view" class="space-y-3">
-        <div id="shift-list" class="space-y-3"></div>
-    </div>
-    <div id="history-view" class="space-y-3 hidden">
-        <div id="archive-list" class="space-y-3"></div>
-    </div>
-
-    <div id="ios-prompt" class="fixed bottom-6 left-6 right-6 bg-slate-900 text-white p-5 rounded-3xl shadow-2xl transition-transform translate-y-[150%] z-[9999] border border-slate-700">
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex gap-3">
-                <div class="bg-white p-2 rounded-xl text-xl">🩺</div>
-                <div>
-                    <h4 class="font-bold text-sm">Add to Home Screen</h4>
-                    <p class="text-xs text-slate-400">Use NursePay like a real app.</p>
-                </div>
-            </div>
-            <button onclick="closePrompt()" class="text-slate-500">✕</button>
-        </div>
-        <div class="bg-slate-800 p-3 rounded-xl flex items-center gap-3 text-xs">
-            <span class="bg-white/10 p-2 rounded">↑</span>
-            <p>Tap <strong>Share</strong> and then <strong>"Add to Home Screen"</strong>.</p>
-        </div>
-    </div>
+    
+    <div id="shift-list" class="space-y-3 mb-10"></div>
 
     <script>
+        // --- State Management ---
         let shifts = JSON.parse(localStorage.getItem('nurseShifts')) || [];
-        let archives = JSON.parse(localStorage.getItem('nurseArchives')) || [];
-        const BASE_RATE = 52.40;
+        let config = JSON.parse(localStorage.getItem('nurseConfig')) || {
+            baseRate: 52.40,
+            hasHecs: false,
+            timeframe: 'fortnightly'
+        };
 
-        function updateUI() {
-            const list = document.getElementById('shift-list');
-            const display = document.getElementById('total-display');
-            const countDisplay = document.getElementById('shift-count');
-            list.innerHTML = '';
+        // --- ATO Tax Engine (2025-2026 Resident Rates) ---
+        function calculateNet(grossAnnual, hasHecs) {
+            // Medicare Levy 2%
+            const medicare = grossAnnual * 0.02;
             
-            let totalGross = 0;
-            shifts.forEach((s, index) => {
-                const shiftGross = BASE_RATE * s.multiplier * s.hours;
-                totalGross += shiftGross;
-                const row = document.createElement('div');
-                row.className = 'bento-card p-4 flex flex-col gap-2 relative';
-                row.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-sm">${s.label} (${s.hours}h)</span>
-                        <span class="font-bold text-slate-700">$${shiftGross.toFixed(2)}</span>
-                    </div>
-                    ${s.note ? `<p class="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg">${s.note}</p>` : ''}
-                    <button onclick="deleteShift(${index})" class="absolute -top-2 -right-2 bg-white shadow-sm border border-slate-100 rounded-full w-6 h-6 text-xs text-slate-300">✕</button>
-                `;
-                list.appendChild(row);
-            });
+            // PAYG Tax Brackets
+            let tax = 0;
+            if (grossAnnual > 190000) tax = 51638 + (grossAnnual - 190000) * 0.45;
+            else if (grossAnnual > 135000) tax = 31288 + (grossAnnual - 135000) * 0.37;
+            else if (grossAnnual > 45000) tax = 4288 + (grossAnnual - 45000) * 0.30;
+            else if (grossAnnual > 18200) tax = (grossAnnual - 18200) * 0.16;
 
-            const takeHome = (totalGross * 0.72) + (totalGross * 0.08);
-            display.innerText = "$" + takeHome.toLocaleString(undefined, {minimumFractionDigits: 2});
-            countDisplay.innerText = `${shifts.length} SHIFTS`;
-            localStorage.setItem('nurseShifts', JSON.stringify(shifts));
-            renderArchives();
+            // HECS/HELP (Simplified 2026 Thresholds)
+            let hecs = 0;
+            if (hasHecs) {
+                if (grossAnnual > 179285) hecs = grossAnnual * 0.10;
+                else if (grossAnnual > 125000) hecs = 8700 + (grossAnnual - 125000) * 0.17;
+                else if (grossAnnual > 67000) hecs = (grossAnnual - 67000) * 0.15;
+            }
+
+            return grossAnnual - tax - medicare - hecs;
         }
 
+        function updateUI() {
+            // Update Sidebar UI to match state
+            document.getElementById('base-rate-input').value = config.baseRate;
+            document.getElementById('hecs-input').checked = config.hasHecs;
+            document.getElementById('timeframe-input').value = config.timeframe;
+
+            const list = document.getElementById('shift-list');
+            list.innerHTML = '';
+            
+            let totalGrossFortnight = 0;
+            shifts.forEach((s, i) => {
+                const shiftGross = config.baseRate * s.multiplier * s.hours;
+                totalGrossFortnight += shiftGross;
+                
+                const card = document.createElement('div');
+                card.className = 'bento-card p-4 flex justify-between items-center';
+                card.innerHTML = `
+                    <div>
+                        <div class="text-xs font-bold text-slate-800">${s.label}</div>
+                        <div class="text-[10px] text-slate-400">${s.hours} hours @ $${(config.baseRate * s.multiplier).toFixed(2)}</div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="font-bold text-sm text-slate-700">$${shiftGross.toFixed(2)}</span>
+                        <button onclick="deleteShift(${i})" class="text-slate-300">✕</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+
+            // Calculate annual projection based on this fortnight
+            const annualGross = totalGrossFortnight * 26;
+            const annualNet = calculateNet(annualGross, config.hasHecs);
+
+            // Convert to selected timeframe
+            let displayVal = 0;
+            const label = document.getElementById('display-label');
+            if(config.timeframe === 'weekly') { displayVal = annualNet / 52; label.innerText = "Weekly Take-Home"; }
+            else if(config.timeframe === 'fortnightly') { displayVal = annualNet / 26; label.innerText = "Fortnightly Take-Home"; }
+            else if(config.timeframe === 'monthly') { displayVal = annualNet / 12; label.innerText = "Monthly Take-Home"; }
+            else { displayVal = annualNet; label.innerText = "Yearly Take-Home"; }
+
+            document.getElementById('total-display').innerText = "$" + displayVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('shift-count').innerText = `${shifts.length} Shifts`;
+            
+            localStorage.setItem('nurseShifts', JSON.stringify(shifts));
+            localStorage.setItem('nurseConfig', JSON.stringify(config));
+        }
+
+        // --- Logic Functions ---
         function addShift() {
             const select = document.getElementById('shift-type');
             const hours = document.getElementById('shift-hours').value;
-            const note = document.getElementById('shift-note').value;
             if(!hours) return;
             shifts.push({
                 label: select.options[select.selectedIndex].text.split(' (')[0],
                 multiplier: parseFloat(select.value),
-                hours: parseFloat(hours),
-                note: note,
-                date: new Date().toLocaleDateString()
+                hours: parseFloat(hours)
             });
             document.getElementById('shift-hours').value = '';
-            document.getElementById('shift-note').value = '';
             updateUI();
         }
 
-        function archiveFortnight() {
-            if (shifts.length === 0) return;
-            if (!confirm("Archive current fortnight?")) return;
-            archives.unshift({
-                date: new Date().toLocaleDateString(),
-                amount: document.getElementById('total-display').innerText,
-                count: shifts.length
-            });
-            shifts = [];
-            localStorage.setItem('nurseArchives', JSON.stringify(archives));
+        function updateSettings() {
+            config.baseRate = parseFloat(document.getElementById('base-rate-input').value) || 0;
+            config.hasHecs = document.getElementById('hecs-input').checked;
+            config.timeframe = document.getElementById('timeframe-input').value;
             updateUI();
         }
 
-        function renderArchives() {
-            const list = document.getElementById('archive-list');
-            list.innerHTML = '';
-            archives.forEach(a => {
-                const row = document.createElement('div');
-                row.className = 'bento-card p-4 flex justify-between items-center opacity-70 mb-2';
-                row.innerHTML = `<span class="text-xs font-bold text-slate-400">${a.date}</span><span class="font-bold text-sm">${a.amount}</span>`;
-                list.appendChild(row);
-            });
-        }
-
-        function switchTab(tab) {
-            const curView = document.getElementById('current-view');
-            const histView = document.getElementById('history-view');
-            const curTab = document.getElementById('tab-current');
-            const histTab = document.getElementById('tab-history');
-
-            if (tab === 'history') {
-                curView.classList.add('hidden');
-                histView.classList.remove('hidden');
-                histTab.className = "text-sm font-bold border-b-2 border-slate-900 pb-1";
-                curTab.className = "text-sm font-bold text-slate-400 pb-1";
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isOpen = !sb.classList.contains('translate-x-full');
+            
+            if(isOpen) {
+                sb.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
             } else {
-                curView.classList.remove('hidden');
-                histView.classList.add('hidden');
-                curTab.className = "text-sm font-bold border-b-2 border-slate-900 pb-1";
-                histTab.className = "text-sm font-bold text-slate-400 pb-1";
+                sb.classList.remove('translate-x-full');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
             }
         }
 
         function deleteShift(i) { shifts.splice(i, 1); updateUI(); }
 
-        function initInstallPrompt() {
-            const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-            if (isIos && !isStandalone) {
-                setTimeout(() => document.getElementById('ios-prompt').style.transform = 'translateY(0)', 3000);
-            }
-        }
-        function closePrompt() { document.getElementById('ios-prompt').style.transform = 'translateY(150%)'; }
-
-        window.onload = () => { updateUI(); initInstallPrompt(); };
+        window.onload = updateUI;
     </script>
 </body>
 </html>
