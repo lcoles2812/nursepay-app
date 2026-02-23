@@ -22,7 +22,7 @@
     <header class="flex justify-between items-center mb-6 mt-4">
         <div>
             <h1 class="text-2xl font-bold">NursePay <span class="text-blue-500 text-sm">PRO</span></h1>
-            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">2026 Audit Tool</p>
+            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">Simple Audit Mode</p>
         </div>
         <button onclick="toggleSidebar()" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">⚙️</button>
     </header>
@@ -37,34 +37,36 @@
 
     <div id="view-shifts">
         <div class="flex justify-between items-center mb-4 px-1">
-            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Audit</h4>
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged Shifts</h4>
             <button onclick="clearShifts()" class="text-[10px] font-bold text-red-500 uppercase tracking-widest">Clear All</button>
         </div>
         <div id="shift-list" class="space-y-3 mb-6"></div>
         
-        <div class="bento-card p-6 text-center bg-blue-50/50 border-dashed border-2 border-blue-200">
+        <div class="bento-card p-6 text-center bg-blue-600 shadow-xl">
             <input type="file" id="roster-upload" accept="image/*" class="hidden" onchange="handleRoster(event)">
-            <button onclick="document.getElementById('roster-upload').click()" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg active:scale-95 transition-all w-full">Scan Roster Image</button>
+            <button onclick="document.getElementById('roster-upload').click()" class="text-white font-bold py-2 px-6 rounded-xl w-full flex items-center justify-center gap-2">
+                <span>📸</span> Scan Roster Screenshot
+            </button>
             <div id="scan-status" class="hidden mt-4 flex items-center justify-center gap-2">
-                <div class="loading-spinner"></div>
-                <span class="text-xs font-bold text-blue-600">Mapping Grid...</span>
+                <div class="loading-spinner !border-t-white"></div>
+                <span class="text-xs font-bold text-white">Extracting Shifts...</span>
             </div>
         </div>
     </div>
 
     <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 overlay opacity-0 pointer-events-none z-40"></div>
-    <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl sidebar translate-x-full p-6 overflow-y-auto z-50">
+    <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl sidebar translate-x-full p-6 z-50">
         <h2 class="text-xl font-bold mb-6">Settings</h2>
         <div class="space-y-4">
             <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase">Base Hourly Rate</label>
+                <label class="text-[10px] font-bold text-slate-400 uppercase">Base Rate ($)</label>
                 <input type="number" id="base-rate-input" class="input-style font-bold">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div><label class="text-[9px] font-bold text-slate-400 uppercase">Day Hrs</label><input type="number" id="hours-default" class="input-style"></div>
                 <div><label class="text-[9px] font-bold text-slate-400 uppercase">Night Hrs</label><input type="number" id="hours-night" class="input-style"></div>
             </div>
-            <button onclick="saveSettings()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl mt-4">Save Configuration</button>
+            <button onclick="saveSettings()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl mt-4">Save & Close</button>
         </div>
     </div>
 
@@ -74,7 +76,7 @@
             baseRate: 52.40, 
             stdHours: { default: 8.0, night: 10.0 },
             penalties: { afternoon: 1.125, night: 1.15, saturday: 1.5, sunday: 1.75 },
-            ...JSON.parse(localStorage.getItem('nurseConfig')) 
+            ...JSON.parse(localStorage.getItem('nurseConfig') || '{}') 
         };
 
         function updateUI() {
@@ -96,11 +98,10 @@
                 </div>`;
             });
 
-            // Very simple tax approximation for take-home
-            const tax = totalGross > 1000 ? 0.25 : 0.15;
-            const net = totalGross * (1 - tax);
+            // Estimated Net (0.75 multiplier for rough tax/medicare)
+            const net = (totalGross * 0.75);
             document.getElementById('total-display').innerText = "$" + net.toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('shift-count').innerText = `${shifts.length} Shifts Found`;
+            document.getElementById('shift-count').innerText = `${shifts.length} Shifts Detected`;
             
             localStorage.setItem('nurseShifts', JSON.stringify(shifts));
             localStorage.setItem('nurseConfig', JSON.stringify(config));
@@ -112,53 +113,35 @@
             document.getElementById('scan-status').classList.remove('hidden');
 
             try {
-                // We use 'word' level data to find where the text is located on the page
-                const { data } = await Tesseract.recognize(file, 'eng');
-                const words = data.words; 
+                const { data: { text } } = await Tesseract.recognize(file, 'eng');
+                const rawLines = text.toLowerCase().split('\n');
                 
-                // 1. Filter out the legend (words at the very top of the image)
-                const filteredWords = words.filter(w => w.bbox.y0 > 150); 
-
-                let foundCount = 0;
-                const codes = [
-                    { keys: ['day'], label: 'Day', type: 'default' },
-                    { keys: ['late', 'le'], label: 'Late', type: 'afternoon' },
-                    { keys: ['night', '10night'], label: 'Night', type: 'night' }
+                const rosterMap = [
+                    { keys: ['day'], label: 'Day Shift', type: 'default' },
+                    { keys: ['late', 'le'], label: 'Late Shift', type: 'afternoon' },
+                    { keys: ['night', '10night'], label: 'Night Shift', type: 'night' }
                 ];
 
-                // 2. Loop through every word to find shift keywords
-                filteredWords.forEach((wordObj, index) => {
-                    const text = wordObj.text.toLowerCase();
-                    
-                    codes.forEach(code => {
-                        if (code.keys.some(k => text.includes(k))) {
-                            // 3. Search backwards from this word to find the nearest date number
-                            let dateFound = "??";
-                            for (let i = index; i >= Math.max(0, index - 10); i--) {
-                                const possibleDate = filteredWords[i].text.match(/\b([1-9]|[12][0-9]|3[01])\b/);
-                                if (possibleDate) {
-                                    dateFound = possibleDate[0];
-                                    break;
-                                }
-                            }
+                rawLines.forEach(line => {
+                    // Filter: Skip lines that contain too many keywords (Legend at the top)
+                    const keywordsFound = rosterMap.filter(p => p.keys.some(k => line.includes(k)));
+                    if (keywordsFound.length >= 3) return;
 
-                            const hours = (code.type === 'night') ? config.stdHours.night : config.stdHours.default;
+                    rosterMap.forEach(p => {
+                        if (p.keys.some(k => line.includes(k)) && !line.includes('off')) {
+                            const hours = (p.type === 'night') ? config.stdHours.night : config.stdHours.default;
                             shifts.push({
-                                label: `${code.label} (Jan ${dateFound})`,
-                                dateNum: parseInt(dateFound) || 99,
-                                type: code.type,
+                                label: p.label,
+                                type: p.type,
                                 hours: hours
                             });
-                            foundCount++;
                         }
                     });
                 });
 
-                shifts.sort((a, b) => a.dateNum - b.dateNum);
                 updateUI();
-                if (foundCount === 0) alert("No shifts detected. Try a closer crop of the calendar grid.");
             } catch (err) {
-                alert("Scan failed. Error: " + err.message);
+                alert("Error scanning image.");
             } finally {
                 document.getElementById('scan-status').classList.add('hidden');
             }
@@ -172,7 +155,7 @@
             localStorage.setItem('nurseConfig', JSON.stringify(config));
             toggleSidebar(); updateUI();
         }
-        function clearShifts() { shifts = []; updateUI(); }
+        function clearShifts() { if(confirm("Clear all?")) { shifts = []; updateUI(); } }
         function deleteShift(i) { shifts.splice(i, 1); updateUI(); }
         window.onload = updateUI;
     </script>
