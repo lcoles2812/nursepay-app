@@ -11,7 +11,7 @@
     <style>
         body { font-family: 'Lexend', sans-serif; background-color: #F8FAFC; }
         .bento-card { background: white; border-radius: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); border: 1px solid #F1F5F9; }
-        .input-style { background: #F1F5F9; border: none; border-radius: 12px; padding: 12px; width: 100%; outline: none; font-size: 14px; }
+        .input-style { background: #F1F5F9; border: none; border-radius: 12px; padding: 10px; width: 100%; outline: none; font-size: 14px; }
         .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; }
         .overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); transition: opacity 0.3s; }
         .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
@@ -23,16 +23,43 @@
     <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 overlay opacity-0 pointer-events-none z-40"></div>
     <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl sidebar translate-x-full p-6 overflow-y-auto">
         <h2 class="text-xl font-bold mb-6">Settings</h2>
-        <div class="space-y-4">
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase">Base Hourly Rate</label>
-                <input type="number" id="base-rate-input" class="input-style font-bold" value="52.40">
-            </div>
+        
+        <div class="space-y-6">
+            <section>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Rate ($)</label>
+                <input type="number" id="base-rate-input" class="input-style font-bold mt-1" value="52.40">
+            </section>
+
+            <section>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Penalty Multipliers</label>
+                <div class="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                        <span class="text-[9px] text-slate-500 font-bold uppercase">Afternoon</span>
+                        <input type="number" step="0.01" id="rate-afternoon" class="input-style" value="1.125">
+                    </div>
+                    <div>
+                        <span class="text-[9px] text-slate-500 font-bold uppercase">Night</span>
+                        <input type="number" step="0.01" id="rate-night" class="input-style" value="1.15">
+                    </div>
+                    <div>
+                        <span class="text-[9px] text-slate-500 font-bold uppercase">Saturday</span>
+                        <input type="number" step="0.01" id="rate-saturday" class="input-style" value="1.5">
+                    </div>
+                    <div>
+                        <span class="text-[9px] text-slate-500 font-bold uppercase">Sunday</span>
+                        <input type="number" step="0.01" id="rate-sunday" class="input-style" value="1.75">
+                    </div>
+                </div>
+            </section>
+
             <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl">
-                <span class="text-xs font-bold">HECS Debt</span>
+                <span class="text-xs font-bold uppercase text-slate-600">HECS Debt</span>
                 <input type="checkbox" id="hecs-input" class="w-5 h-5 accent-blue-600">
             </div>
-            <button onclick="saveSettings()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-4">Save Changes</button>
+
+            <button onclick="saveSettings()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all">
+                Save & Apply
+            </button>
         </div>
     </div>
 
@@ -63,11 +90,11 @@
         <div class="bento-card p-5 mb-6">
             <div class="grid grid-cols-2 gap-3 mb-4">
                 <select id="shift-type" class="input-style font-bold">
-                    <option value="1.0">Morning (1x)</option>
-                    <option value="1.125">Afternoon (1.125x)</option>
-                    <option value="1.15">Night (1.15x)</option>
-                    <option value="1.5">Saturday (1.5x)</option>
-                    <option value="1.75">Sunday (1.75x)</option>
+                    <option value="1.0">Morning</option>
+                    <option value="afternoon">Afternoon</option>
+                    <option value="night">Night</option>
+                    <option value="saturday">Saturday</option>
+                    <option value="sunday">Sunday</option>
                     <option value="2.5">Public Hol (2.5x)</option>
                 </select>
                 <input type="number" id="shift-hours" class="input-style" placeholder="Hours">
@@ -82,12 +109,10 @@
             <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">📸</div>
             <h3 class="font-bold text-slate-800">Smart Roster Import</h3>
             <p class="text-[10px] text-slate-400 mb-6">Upload your roster image and we'll automatically calculate your shifts.</p>
-            
             <input type="file" id="roster-upload" accept="image/*" class="hidden" onchange="handleRoster(event)">
             <button onclick="document.getElementById('roster-upload').click()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mb-4">
                 Scan Roster Screenshot
             </button>
-
             <div id="scan-status" class="hidden flex items-center justify-center gap-3 p-4 bg-slate-50 rounded-xl">
                 <div class="loading-spinner"></div>
                 <span class="text-xs font-medium text-slate-600">Analyzing Schedule...</span>
@@ -113,7 +138,11 @@
     <script>
         let shifts = JSON.parse(localStorage.getItem('nurseShifts')) || [];
         let deductions = JSON.parse(localStorage.getItem('nurseDeductions')) || [];
-        let config = JSON.parse(localStorage.getItem('nurseConfig')) || { baseRate: 52.40, hasHecs: false };
+        let config = JSON.parse(localStorage.getItem('nurseConfig')) || { 
+            baseRate: 52.40, 
+            hasHecs: false,
+            penalties: { afternoon: 1.125, night: 1.15, saturday: 1.5, sunday: 1.75 }
+        };
 
         function calculateNet(grossAnnual, hasHecs) {
             const taxable = Math.max(0, grossAnnual);
@@ -131,15 +160,29 @@
             return (taxable - tax - medicare - hecs);
         }
 
+        function getMultiplier(val) {
+            if (!isNaN(val)) return parseFloat(val);
+            return config.penalties[val] || 1.0;
+        }
+
         function updateUI() {
+            // Update Sidebar Values
+            document.getElementById('base-rate-input').value = config.baseRate;
+            document.getElementById('rate-afternoon').value = config.penalties.afternoon;
+            document.getElementById('rate-night').value = config.penalties.night;
+            document.getElementById('rate-saturday').value = config.penalties.saturday;
+            document.getElementById('rate-sunday').value = config.penalties.sunday;
+            document.getElementById('hecs-input').checked = config.hasHecs;
+
             const sList = document.getElementById('shift-list');
             sList.innerHTML = '';
             let totalGrossFortnight = 0;
             shifts.forEach((s, i) => {
-                const shiftGross = config.baseRate * s.multiplier * s.hours;
+                const mult = getMultiplier(s.multiplier);
+                const shiftGross = config.baseRate * mult * s.hours;
                 totalGrossFortnight += shiftGross;
                 sList.innerHTML += `<div class="bento-card p-4 flex justify-between items-center text-xs">
-                    <div><b>${s.label}</b><br><span class="text-slate-400">${s.hours}h</span></div>
+                    <div><b>${s.label}</b><br><span class="text-slate-400">${s.hours}h @ ${mult}x</span></div>
                     <div class="flex items-center gap-3"><b>$${shiftGross.toFixed(2)}</b><button onclick="deleteItem('shifts', ${i})">✕</button></div>
                 </div>`;
             });
@@ -162,6 +205,17 @@
 
             localStorage.setItem('nurseShifts', JSON.stringify(shifts));
             localStorage.setItem('nurseDeductions', JSON.stringify(deductions));
+            localStorage.setItem('nurseConfig', JSON.stringify(config));
+        }
+
+        function addShift() {
+            const h = document.getElementById('shift-hours').value;
+            const type = document.getElementById('shift-type').value;
+            const label = document.getElementById('shift-type').options[document.getElementById('shift-type').selectedIndex].text;
+            if(!h) return;
+            shifts.push({ label: label, multiplier: type, hours: parseFloat(h) });
+            document.getElementById('shift-hours').value = '';
+            updateUI();
         }
 
         async function handleRoster(event) {
@@ -171,30 +225,35 @@
             try {
                 const { data: { text } } = await Tesseract.recognize(file, 'eng');
                 const patterns = [
-                    { key: 'morning', label: 'Morning', mult: 1.0, hours: 8.5 },
-                    { key: 'afternoon', label: 'Afternoon', mult: 1.125, hours: 8.5 },
-                    { key: 'night', label: 'Night', mult: 1.15, hours: 10.0 }
+                    { key: 'morning', label: 'Morning', val: 1.0, hours: 8.5 },
+                    { key: 'afternoon', label: 'Afternoon', val: 'afternoon', hours: 8.5 },
+                    { key: 'night', label: 'Night', val: 'night', hours: 10.0 }
                 ];
                 let found = 0;
                 text.toLowerCase().split('\n').forEach(line => {
                     patterns.forEach(p => {
                         if (line.includes(p.key)) {
-                            shifts.push({ label: `AI: ${p.label}`, multiplier: p.mult, hours: p.hours });
+                            shifts.push({ label: `AI: ${p.label}`, multiplier: p.val, hours: p.hours });
                             found++;
                         }
                     });
                 });
-                if (found > 0) { alert(`Added ${found} shifts!`); updateUI(); switchTab('shifts'); }
-                else { alert("No shifts found. Try a clearer photo."); }
+                if (found > 0) { updateUI(); switchTab('shifts'); }
             } finally { document.getElementById('scan-status').classList.add('hidden'); }
         }
 
-        function addShift() {
-            const h = document.getElementById('shift-hours').value;
-            if(!h) return;
-            shifts.push({ label: document.getElementById('shift-type').options[document.getElementById('shift-type').selectedIndex].text.split(' (')[0], multiplier: parseFloat(document.getElementById('shift-type').value), hours: parseFloat(h) });
-            document.getElementById('shift-hours').value = '';
+        function saveSettings() {
+            config.baseRate = parseFloat(document.getElementById('base-rate-input').value);
+            config.hasHecs = document.getElementById('hecs-input').checked;
+            config.penalties = {
+                afternoon: parseFloat(document.getElementById('rate-afternoon').value),
+                night: parseFloat(document.getElementById('rate-night').value),
+                saturday: parseFloat(document.getElementById('rate-saturday').value),
+                sunday: parseFloat(document.getElementById('rate-sunday').value)
+            };
+            localStorage.setItem('nurseConfig', JSON.stringify(config));
             updateUI();
+            toggleSidebar();
         }
 
         function addDeduction() {
@@ -215,11 +274,9 @@
         }
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('translate-x-full'); document.getElementById('sidebar-overlay').classList.toggle('opacity-0'); document.getElementById('sidebar-overlay').classList.toggle('pointer-events-none'); }
-        function saveSettings() { config.baseRate = parseFloat(document.getElementById('base-rate-input').value); config.hasHecs = document.getElementById('hecs-input').checked; localStorage.setItem('nurseConfig', JSON.stringify(config)); updateUI(); toggleSidebar(); }
         function deleteItem(arr, i) { if(arr === 'shifts') shifts.splice(i, 1); else deductions.splice(i, 1); updateUI(); }
         window.onload = updateUI;
     </script>
-
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
