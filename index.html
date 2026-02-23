@@ -13,10 +13,11 @@
     
     <style>
         body { font-family: 'Lexend', sans-serif; background-color: #F8FAFC; overflow-x: hidden; }
-        .bento-card { background: white; border-radius: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); border: 1px solid #F1F5F9; }
+        .bento-card { background: white; border-radius: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); border: 1px solid #F1F5F9; transition: all 0.2s; }
         .input-style { background: #F1F5F9; border: none; border-radius: 12px; padding: 12px; width: 100%; outline: none; font-size: 14px; }
         .sidebar { transition: transform 0.3s ease-in-out; z-index: 50; }
         .overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); transition: opacity 0.3s; }
+        .premium-badge { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
     </style>
 </head>
 <body class="p-5 max-w-md mx-auto pb-32">
@@ -24,200 +25,236 @@
     <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 overlay opacity-0 pointer-events-none z-40"></div>
     <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl sidebar translate-x-full p-6 overflow-y-auto">
         <div class="flex justify-between items-center mb-8">
-            <h2 class="text-xl font-bold">Pay Settings</h2>
+            <h2 class="text-xl font-bold">Financial Profile</h2>
             <button onclick="toggleSidebar()" class="text-slate-400 text-2xl">✕</button>
         </div>
 
         <div class="space-y-6">
             <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Base Hourly Rate ($)</label>
-                <input type="number" id="base-rate-input" onchange="updateSettings()" class="input-style font-bold text-lg" value="52.40">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Hourly Rate ($)</label>
+                <input type="number" id="base-rate-input" onchange="updateSettings()" class="input-style font-bold" value="52.40">
             </div>
 
             <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Student Debt (HECS/HELP)</label>
-                <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
-                    <input type="checkbox" id="hecs-input" onchange="updateSettings()" class="w-5 h-5 accent-blue-600">
-                    <span class="text-sm font-medium text-slate-700">I have a HECS debt</span>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Salary Packaging <span class="premium-badge ml-1">Beta</span></label>
+                <div class="space-y-3 p-4 bg-slate-50 rounded-2xl">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-medium">Use Packaging?</span>
+                        <input type="checkbox" id="packaging-toggle" onchange="updateSettings()" class="w-5 h-5 accent-blue-600">
+                    </div>
+                    <div id="packaging-amount-wrap" class="hidden">
+                        <label class="text-[9px] text-slate-500 font-bold block mb-1">Annual Cap (Default $9,010)</label>
+                        <input type="number" id="packaging-amount" onchange="updateSettings()" class="input-style bg-white py-2" value="9010">
+                    </div>
                 </div>
             </div>
 
             <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Display Mode</label>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">HECS Debt</label>
+                <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
+                    <input type="checkbox" id="hecs-input" onchange="updateSettings()" class="w-5 h-5 accent-blue-600">
+                    <span class="text-sm font-medium text-slate-700">Apply HECS repayments</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Reporting Period</label>
                 <select id="timeframe-input" onchange="updateSettings()" class="input-style font-medium">
-                    <option value="weekly">Weekly Take-Home</option>
-                    <option value="fortnightly" selected>Fortnightly Take-Home</option>
-                    <option value="monthly">Monthly Take-Home</option>
-                    <option value="yearly">Yearly Take-Home</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="fortnightly" selected>Fortnightly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
                 </select>
             </div>
             
-            <div class="pt-6 border-t border-slate-100">
-                <p class="text-[10px] text-slate-400 leading-relaxed italic">Calculations based on 2025-2026 ATO Resident Tax Scales & 2% Medicare Levy.</p>
+            <div class="p-4 rounded-2xl border-2 border-dashed border-slate-200">
+                <p class="text-[10px] text-slate-500 font-medium mb-2">Need an official Tax Report?</p>
+                <button class="w-full bg-blue-600 text-white text-[10px] font-bold py-2 rounded-lg opacity-50 cursor-not-allowed">Export Tax-Ready Report (Coming Soon)</button>
             </div>
         </div>
     </div>
 
     <header class="flex justify-between items-center mb-6 mt-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight">NursePay <span class="text-blue-500 text-sm">PRO</span></h1>
-            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-tighter">Personal Payroll Auditor</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">NursePay <span class="text-blue-500 text-sm">PRO</span></h1>
+            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-tighter">Financial Audit Utility</p>
         </div>
-        <div class="flex gap-2">
-            <button onclick="toggleSidebar()" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-lg">⚙️</button>
-        </div>
+        <button onclick="toggleSidebar()" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-lg">⚙️</button>
     </header>
 
-    <div class="bento-card p-8 mb-6 text-center relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+    <div class="bento-card p-8 mb-6 text-center border-b-4 border-blue-500">
         <span id="display-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Fortnightly Take-Home</span>
         <div id="total-display" class="text-5xl font-bold text-slate-900 my-2 tracking-tighter">$0.00</div>
         <div class="flex justify-center gap-2 mt-2">
             <span id="shift-count" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">0 Shifts</span>
-            <span id="tax-impact" class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase">Tax Ready</span>
+            <span id="deduction-count" class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">$0 Deductions</span>
         </div>
     </div>
 
-    <div class="bento-card p-6 mb-6">
-        <div class="grid grid-cols-2 gap-3 mb-4">
-            <select id="shift-type" class="input-style font-bold">
-                <option value="1.0">Morning (1x)</option>
-                <option value="1.125">Afternoon (1.125x)</option>
-                <option value="1.15">Night (1.15x)</option>
-                <option value="1.5">Saturday (1.5x)</option>
-                <option value="1.75">Sunday (1.75x)</option>
-                <option value="2.5">Public Hol (2.5x)</option>
-            </select>
-            <input type="number" id="shift-hours" class="input-style" placeholder="Hours (8.5)">
-        </div>
-        <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform shadow-lg shadow-slate-200">
-            Add to Fortnight
-        </button>
+    <div class="flex gap-4 mb-4 px-2">
+        <button onclick="switchTab('shifts')" id="tab-shifts" class="text-xs font-bold border-b-2 border-slate-900 pb-1">Shifts</button>
+        <button onclick="switchTab('deductions')" id="tab-deductions" class="text-xs font-bold text-slate-400 pb-1 flex items-center gap-1">Deductions <span class="premium-badge">New</span></button>
     </div>
 
-    <div class="flex justify-between items-end mb-4 px-2">
-        <h3 class="font-bold text-slate-800">Current Log</h3>
-        <button onclick="archiveFortnight()" class="text-blue-600 text-[11px] font-bold uppercase tracking-wider">Finish Fortnight →</button>
+    <div id="view-shifts">
+        <div class="bento-card p-5 mb-6">
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <select id="shift-type" class="input-style font-bold">
+                    <option value="1.0">Morning (1x)</option>
+                    <option value="1.125">Afternoon (1.125x)</option>
+                    <option value="1.15">Night (1.15x)</option>
+                    <option value="1.5">Saturday (1.5x)</option>
+                    <option value="1.75">Sunday (1.75x)</option>
+                    <option value="2.5">Public Hol (2.5x)</option>
+                </select>
+                <input type="number" id="shift-hours" class="input-style" placeholder="Hours">
+            </div>
+            <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg">Add Shift</button>
+        </div>
+        <div id="shift-list" class="space-y-3"></div>
     </div>
-    
-    <div id="shift-list" class="space-y-3 mb-10"></div>
+
+    <div id="view-deductions" class="hidden">
+        <div class="bento-card p-5 mb-6">
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <select id="deduction-type" class="input-style text-xs">
+                    <option value="AHPRA">AHPRA Rego</option>
+                    <option value="Union">Union Fees</option>
+                    <option value="Laundry">Uniform Laundry</option>
+                    <option value="Tools">Tools (Stethoscope/Shoes)</option>
+                    <option value="CPD">Course/CPD</option>
+                </select>
+                <input type="number" id="deduction-cost" class="input-style" placeholder="Cost ($)">
+            </div>
+            <button onclick="addDeduction()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl">Log Expense</button>
+        </div>
+        <div id="deduction-list" class="space-y-3"></div>
+    </div>
 
     <script>
-        // --- State Management ---
         let shifts = JSON.parse(localStorage.getItem('nurseShifts')) || [];
+        let deductions = JSON.parse(localStorage.getItem('nurseDeductions')) || [];
         let config = JSON.parse(localStorage.getItem('nurseConfig')) || {
-            baseRate: 52.40,
-            hasHecs: false,
-            timeframe: 'fortnightly'
+            baseRate: 52.40, hasHecs: false, timeframe: 'fortnightly', usePackaging: false, pkgAmount: 9010
         };
 
-        // --- ATO Tax Engine (2025-2026 Resident Rates) ---
-        function calculateNet(grossAnnual, hasHecs) {
-            // Medicare Levy 2%
-            const medicare = grossAnnual * 0.02;
-            
-            // PAYG Tax Brackets
-            let tax = 0;
-            if (grossAnnual > 190000) tax = 51638 + (grossAnnual - 190000) * 0.45;
-            else if (grossAnnual > 135000) tax = 31288 + (grossAnnual - 135000) * 0.37;
-            else if (grossAnnual > 45000) tax = 4288 + (grossAnnual - 45000) * 0.30;
-            else if (grossAnnual > 18200) tax = (grossAnnual - 18200) * 0.16;
+        // --- ATO 2026 CALCULATOR ENGINE ---
+        function calculateNet(grossAnnual, config, annualDeductions) {
+            // Apply Salary Packaging (Reduces taxable income)
+            const packagingAmount = config.usePackaging ? Math.min(config.pkgAmount, grossAnnual) : 0;
+            const taxableIncome = Math.max(0, grossAnnual - packagingAmount - annualDeductions);
 
-            // HECS/HELP (Simplified 2026 Thresholds)
+            // PAYG Tax calculation
+            let tax = 0;
+            if (taxableIncome > 190000) tax = 51638 + (taxableIncome - 190000) * 0.45;
+            else if (taxableIncome > 135000) tax = 31288 + (taxableIncome - 135000) * 0.37;
+            else if (taxableIncome > 45000) tax = 4288 + (taxableIncome - 45000) * 0.30;
+            else if (taxableIncome > 18200) tax = (taxableIncome - 18200) * 0.16;
+
+            const medicare = taxableIncome * 0.02;
+
+            // HECS calculation (Requires "Repayment Income" = Taxable + Packaged)
             let hecs = 0;
-            if (hasHecs) {
-                if (grossAnnual > 179285) hecs = grossAnnual * 0.10;
-                else if (grossAnnual > 125000) hecs = 8700 + (grossAnnual - 125000) * 0.17;
-                else if (grossAnnual > 67000) hecs = (grossAnnual - 67000) * 0.15;
+            const hri = taxableIncome + packagingAmount; // Simplified HRI
+            if (config.hasHecs) {
+                if (hri > 179285) hecs = hri * 0.10;
+                else if (hri > 125000) hecs = 8700 + (hri - 125000) * 0.17;
+                else if (hri > 67000) hecs = (hri - 67000) * 0.15;
             }
 
-            return grossAnnual - tax - medicare - hecs;
+            // Real Take-Home = Gross - Tax - Medicare - HECS - Any Packaging Contribution
+            // Note: Packaging replaces taxable income with tax-free funds
+            return (taxableIncome - tax - medicare - hecs) + packagingAmount;
         }
 
         function updateUI() {
-            // Update Sidebar UI to match state
+            // Sync Settings UI
             document.getElementById('base-rate-input').value = config.baseRate;
             document.getElementById('hecs-input').checked = config.hasHecs;
             document.getElementById('timeframe-input').value = config.timeframe;
+            document.getElementById('packaging-toggle').checked = config.usePackaging;
+            document.getElementById('packaging-amount').value = config.pkgAmount;
+            document.getElementById('packaging-amount-wrap').classList.toggle('hidden', !config.usePackaging);
 
-            const list = document.getElementById('shift-list');
-            list.innerHTML = '';
-            
+            // Render Shifts
+            const sList = document.getElementById('shift-list');
+            sList.innerHTML = '';
             let totalGrossFortnight = 0;
             shifts.forEach((s, i) => {
                 const shiftGross = config.baseRate * s.multiplier * s.hours;
                 totalGrossFortnight += shiftGross;
-                
-                const card = document.createElement('div');
-                card.className = 'bento-card p-4 flex justify-between items-center';
-                card.innerHTML = `
-                    <div>
-                        <div class="text-xs font-bold text-slate-800">${s.label}</div>
-                        <div class="text-[10px] text-slate-400">${s.hours} hours @ $${(config.baseRate * s.multiplier).toFixed(2)}</div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <span class="font-bold text-sm text-slate-700">$${shiftGross.toFixed(2)}</span>
-                        <button onclick="deleteShift(${i})" class="text-slate-300">✕</button>
-                    </div>
-                `;
-                list.appendChild(card);
+                sList.innerHTML += `<div class="bento-card p-4 flex justify-between items-center text-xs">
+                    <div><b>${s.label}</b><br><span class="text-slate-400">${s.hours}h</span></div>
+                    <div class="flex items-center gap-3"><b>$${shiftGross.toFixed(2)}</b><button onclick="deleteItem('shifts', ${i})">✕</button></div>
+                </div>`;
             });
 
-            // Calculate annual projection based on this fortnight
-            const annualGross = totalGrossFortnight * 26;
-            const annualNet = calculateNet(annualGross, config.hasHecs);
+            // Render Deductions
+            const dList = document.getElementById('deduction-list');
+            dList.innerHTML = '';
+            let totalDeductions = 0;
+            deductions.forEach((d, i) => {
+                totalDeductions += d.cost;
+                dList.innerHTML += `<div class="bento-card p-4 flex justify-between items-center text-xs border-l-4 border-emerald-400">
+                    <div><b>${d.type}</b><br><span class="text-slate-400">Expense</span></div>
+                    <div class="flex items-center gap-3"><b class="text-emerald-600">$${d.cost.toFixed(2)}</b><button onclick="deleteItem('deductions', ${i})">✕</button></div>
+                </div>`;
+            });
 
-            // Convert to selected timeframe
+            // Calculate Net
+            const annualGross = totalGrossFortnight * 26;
+            const netAnnual = calculateNet(annualGross, config, totalDeductions);
+            
             let displayVal = 0;
-            const label = document.getElementById('display-label');
-            if(config.timeframe === 'weekly') { displayVal = annualNet / 52; label.innerText = "Weekly Take-Home"; }
-            else if(config.timeframe === 'fortnightly') { displayVal = annualNet / 26; label.innerText = "Fortnightly Take-Home"; }
-            else if(config.timeframe === 'monthly') { displayVal = annualNet / 12; label.innerText = "Monthly Take-Home"; }
-            else { displayVal = annualNet; label.innerText = "Yearly Take-Home"; }
+            if(config.timeframe === 'weekly') displayVal = netAnnual / 52;
+            else if(config.timeframe === 'fortnightly') displayVal = netAnnual / 26;
+            else if(config.timeframe === 'monthly') displayVal = netAnnual / 12;
+            else displayVal = netAnnual;
 
             document.getElementById('total-display').innerText = "$" + displayVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('shift-count').innerText = `${shifts.length} Shifts`;
-            
+            document.getElementById('deduction-count').innerText = `$${totalDeductions.toFixed(0)} Deductions`;
+            document.getElementById('display-label').innerText = `${config.timeframe.charAt(0).toUpperCase() + config.timeframe.slice(1)} Take-Home`;
+
             localStorage.setItem('nurseShifts', JSON.stringify(shifts));
+            localStorage.setItem('nurseDeductions', JSON.stringify(deductions));
             localStorage.setItem('nurseConfig', JSON.stringify(config));
         }
 
-        // --- Logic Functions ---
         function addShift() {
-            const select = document.getElementById('shift-type');
-            const hours = document.getElementById('shift-hours').value;
-            if(!hours) return;
-            shifts.push({
-                label: select.options[select.selectedIndex].text.split(' (')[0],
-                multiplier: parseFloat(select.value),
-                hours: parseFloat(hours)
-            });
+            const h = document.getElementById('shift-hours').value;
+            if(!h) return;
+            shifts.push({ label: document.getElementById('shift-type').options[document.getElementById('shift-type').selectedIndex].text.split(' (')[0], multiplier: parseFloat(document.getElementById('shift-type').value), hours: parseFloat(h) });
             document.getElementById('shift-hours').value = '';
             updateUI();
         }
 
-        function updateSettings() {
-            config.baseRate = parseFloat(document.getElementById('base-rate-input').value) || 0;
-            config.hasHecs = document.getElementById('hecs-input').checked;
-            config.timeframe = document.getElementById('timeframe-input').value;
+        function addDeduction() {
+            const c = document.getElementById('deduction-cost').value;
+            if(!c) return;
+            deductions.push({ type: document.getElementById('deduction-type').value, cost: parseFloat(c) });
+            document.getElementById('deduction-cost').value = '';
             updateUI();
         }
 
-        function toggleSidebar() {
-            const sb = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            const isOpen = !sb.classList.contains('translate-x-full');
-            
-            if(isOpen) {
-                sb.classList.add('translate-x-full');
-                overlay.classList.add('opacity-0', 'pointer-events-none');
-            } else {
-                sb.classList.remove('translate-x-full');
-                overlay.classList.remove('opacity-0', 'pointer-events-none');
-            }
+        function updateSettings() {
+            config.baseRate = parseFloat(document.getElementById('base-rate-input').value);
+            config.hasHecs = document.getElementById('hecs-input').checked;
+            config.timeframe = document.getElementById('timeframe-input').value;
+            config.usePackaging = document.getElementById('packaging-toggle').checked;
+            config.pkgAmount = parseFloat(document.getElementById('packaging-amount').value);
+            updateUI();
         }
 
-        function deleteShift(i) { shifts.splice(i, 1); updateUI(); }
+        function switchTab(t) {
+            document.getElementById('view-shifts').classList.toggle('hidden', t !== 'shifts');
+            document.getElementById('view-deductions').classList.toggle('hidden', t !== 'deductions');
+            document.getElementById('tab-shifts').className = t === 'shifts' ? "text-xs font-bold border-b-2 border-slate-900 pb-1" : "text-xs font-bold text-slate-400 pb-1";
+            document.getElementById('tab-deductions').className = t === 'deductions' ? "text-xs font-bold border-b-2 border-slate-900 pb-1" : "text-xs font-bold text-slate-400 pb-1";
+        }
+
+        function deleteItem(arr, i) { if(arr === 'shifts') shifts.splice(i, 1); else deductions.splice(i, 1); updateUI(); }
+        function toggleSidebar() { const sb = document.getElementById('sidebar'); const ov = document.getElementById('sidebar-overlay'); sb.classList.toggle('translate-x-full'); ov.classList.toggle('opacity-0'); ov.classList.toggle('pointer-events-none'); }
 
         window.onload = updateUI;
     </script>
