@@ -44,10 +44,10 @@
                 <section>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Penalty Multipliers</label>
                     <div class="grid grid-cols-2 gap-3 mt-2">
-                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Afternoon</span><input type="number" step="0.01" id="rate-afternoon" class="input-style"></div>
+                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Aft</span><input type="number" step="0.01" id="rate-afternoon" class="input-style"></div>
                         <div><span class="text-[9px] text-slate-500 font-bold uppercase">Night</span><input type="number" step="0.01" id="rate-night" class="input-style"></div>
-                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Saturday</span><input type="number" step="0.01" id="rate-saturday" class="input-style"></div>
-                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Sunday</span><input type="number" step="0.01" id="rate-sunday" class="input-style"></div>
+                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Sat</span><input type="number" step="0.01" id="rate-saturday" class="input-style"></div>
+                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Sun</span><input type="number" step="0.01" id="rate-sunday" class="input-style"></div>
                     </div>
                 </section>
                 <button onclick="saveSettings()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all">Save & Apply</button>
@@ -76,13 +76,20 @@
     </div>
 
     <div class="flex gap-4 mb-4 px-2 border-b border-slate-100">
-        <button onclick="switchTab('shifts')" id="tab-shifts" class="text-xs font-bold border-b-2 border-slate-900 pb-2">Manual Add</button>
-        <button onclick="switchTab('roster')" id="tab-roster" class="text-xs font-bold text-slate-400 pb-2">Roster Scan AI</button>
-        <button onclick="switchTab('deductions')" id="tab-deductions" class="text-xs font-bold text-slate-400 pb-2">Deductions</button>
+        <button onclick="switchTab('shifts')" id="tab-shifts" class="text-xs font-bold border-b-2 border-slate-900 pb-2">Logged</button>
+        <button onclick="switchTab('roster')" id="tab-roster" class="text-xs font-bold text-slate-400 pb-2">AI Scan</button>
+        <button onclick="switchTab('deductions')" id="tab-deductions" class="text-xs font-bold text-slate-400 pb-2">Expenses</button>
     </div>
 
     <div id="view-shifts">
-        <div class="bento-card p-5 mb-6">
+        <div class="flex justify-between items-center mb-4 px-1">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Audit List</h4>
+            <button onclick="clearShifts()" class="text-[10px] font-bold text-red-500 uppercase tracking-widest">Clear All</button>
+        </div>
+        <div id="shift-list" class="space-y-3"></div>
+        
+        <div class="mt-6 bento-card p-5">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-3">Add Manual</h4>
             <div class="grid grid-cols-2 gap-3 mb-4">
                 <select id="shift-type" class="input-style font-bold">
                     <option value="1.0">Morning</option>
@@ -91,27 +98,22 @@
                     <option value="saturday">Saturday</option>
                     <option value="sunday">Sunday</option>
                 </select>
-                <input type="number" id="shift-hours" class="input-style" placeholder="Hours">
+                <input type="number" id="shift-hours" class="input-style" placeholder="Hrs">
             </div>
-            <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl">Add Shift</button>
+            <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl">Add to Audit</button>
         </div>
-        <div class="flex justify-between items-center mb-4 px-1">
-            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged Shifts</h4>
-            <button onclick="clearShifts()" class="text-[10px] font-bold text-red-500 uppercase tracking-widest">Clear All</button>
-        </div>
-        <div id="shift-list" class="space-y-3"></div>
     </div>
 
     <div id="view-roster" class="hidden">
         <div class="bento-card p-6 text-center">
             <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">📸</div>
-            <h3 class="font-bold">Smart Roster Import</h3>
-            <p class="text-[10px] text-slate-400 mb-6 px-4">AI will scan for dates and shorthand codes like 'Day', 'Late', 'LE', and 'Night'.</p>
+            <h3 class="font-bold">Scan Calendar</h3>
+            <p class="text-[10px] text-slate-400 mb-6 px-4">Detects 'Day', 'Late', 'LE', and 'Night' for Jan 2026.</p>
             <input type="file" id="roster-upload" accept="image/*" class="hidden" onchange="handleRoster(event)">
-            <button onclick="document.getElementById('roster-upload').click()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">Scan Roster Screenshot</button>
+            <button onclick="document.getElementById('roster-upload').click()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">Select Screenshot</button>
             <div id="scan-status" class="hidden mt-6 flex items-center justify-center gap-3 p-4 bg-slate-50 rounded-xl">
                 <div class="loading-spinner"></div>
-                <span class="text-xs font-medium text-slate-600">Reading calendar grid...</span>
+                <span class="text-xs font-medium text-slate-600">Filtering legend items...</span>
             </div>
         </div>
     </div>
@@ -123,11 +125,10 @@
                     <option>AHPRA Rego</option>
                     <option>Union Fees</option>
                     <option>Laundry</option>
-                    <option>Shoes/Equipment</option>
                 </select>
-                <input type="number" id="deduction-cost" class="input-style" placeholder="Cost ($)">
+                <input type="number" id="deduction-cost" class="input-style" placeholder="$">
             </div>
-            <button onclick="addDeduction()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl">Log Expense</button>
+            <button onclick="addDeduction()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl">Add Expense</button>
         </div>
         <div id="deduction-list" class="space-y-3"></div>
     </div>
@@ -139,7 +140,6 @@
         
         let config = {
             baseRate: 52.40,
-            hasHecs: false,
             stdHours: { default: 8.0, night: 10.0 },
             penalties: { afternoon: 1.125, night: 1.15, saturday: 1.5, sunday: 1.75 },
             ...savedConfig
@@ -152,8 +152,7 @@
             else if (taxable > 135000) tax = 31288 + (taxable - 135000) * 0.37;
             else if (taxable > 45000) tax = 4288 + (taxable - 45000) * 0.30;
             else if (taxable > 18200) tax = (taxable - 18200) * 0.16;
-            const medicare = taxable * 0.02;
-            return (taxable - tax - medicare);
+            return (taxable - tax - (taxable * 0.02));
         }
 
         function updateUI() {
@@ -208,7 +207,7 @@
                 const { data: { text } } = await Tesseract.recognize(file, 'eng');
                 const lines = text.toLowerCase().split('\n');
                 let foundCount = 0;
-                let currentDay = "??"; 
+                let currentDay = null;
 
                 const rosterMap = [
                     { keys: ['day'], label: 'Day', val: 1.0, type: 'default' },
@@ -217,48 +216,62 @@
                 ];
 
                 lines.forEach(line => {
+                    // LEGEND FILTER: Skip lines with too many keywords (the top part of her screenshot)
+                    const keywordCount = rosterMap.filter(p => p.keys.some(k => line.includes(k))).length;
+                    if (keywordCount > 2) return; 
+
+                    // DATE DETECTION: Only updates if a new standalone date is found
                     const dateMatch = line.match(/\b([1-9]|[12][0-9]|3[01])\b/);
                     if (dateMatch) currentDay = dateMatch[1];
 
-                    rosterMap.forEach(p => {
-                        if (p.keys.some(k => line.includes(k))) {
-                            const shiftHours = (p.type === 'night') ? config.stdHours.night : config.stdHours.default;
-                            shifts.push({ 
-                                label: `${p.label} (Jan ${currentDay})`, 
-                                dateNum: parseInt(currentDay) || 99,
-                                multiplier: p.val, 
-                                hours: shiftHours 
-                            });
-                            foundCount++;
-                        }
-                    });
+                    // SHIFT DETECTION: Only add if we have an active date context
+                    if (currentDay) {
+                        rosterMap.forEach(p => {
+                            if (p.keys.some(k => line.includes(k))) {
+                                const shiftHours = (p.type === 'night') ? config.stdHours.night : config.stdHours.default;
+                                shifts.push({ 
+                                    label: `${p.label} (Jan ${currentDay})`, 
+                                    dateNum: parseInt(currentDay),
+                                    multiplier: p.val, 
+                                    hours: shiftHours 
+                                });
+                                foundCount++;
+                                currentDay = null; // Reset after finding shift for this day to prevent double-dipping
+                            }
+                        });
+                    }
                 });
 
-                shifts.sort((a, b) => (a.dateNum || 0) - (b.dateNum || 0));
-                if (foundCount > 0) { updateUI(); switchTab('shifts'); alert(`Found ${foundCount} shifts with dates!`); }
+                shifts.sort((a, b) => a.dateNum - b.dateNum);
+                updateUI(); switchTab('shifts'); 
             } finally { document.getElementById('scan-status').classList.add('hidden'); }
         }
 
         function saveSettings() {
-            config.baseRate = parseFloat(document.getElementById('base-rate-input').value) || 52.40;
-            config.stdHours = { default: parseFloat(document.getElementById('hours-default').value) || 8.0, night: parseFloat(document.getElementById('hours-night').value) || 10.0 };
+            config.baseRate = parseFloat(document.getElementById('base-rate-input').value);
+            config.stdHours = { default: parseFloat(document.getElementById('hours-default').value), night: parseFloat(document.getElementById('hours-night').value) };
             config.penalties = {
-                afternoon: parseFloat(document.getElementById('rate-afternoon').value) || 1.125,
-                night: parseFloat(document.getElementById('rate-night').value) || 1.15,
-                saturday: parseFloat(document.getElementById('rate-saturday').value) || 1.5,
-                sunday: parseFloat(document.getElementById('rate-sunday').value) || 1.75
+                afternoon: parseFloat(document.getElementById('rate-afternoon').value),
+                night: parseFloat(document.getElementById('rate-night').value),
+                saturday: parseFloat(document.getElementById('rate-saturday').value),
+                sunday: parseFloat(document.getElementById('rate-sunday').value)
             };
             localStorage.setItem('nurseConfig', JSON.stringify(config));
             updateUI(); toggleSidebar();
         }
 
-        function resetApp() { if (confirm("Reset everything? This wipes all shifts and settings.")) { localStorage.clear(); location.reload(); } }
-        function clearShifts() { if (confirm("Clear all logged shifts?")) { shifts = []; updateUI(); } }
+        function resetApp() { if(confirm("Clear all data?")) { localStorage.clear(); location.reload(); } }
+        function clearShifts() { if(confirm("Clear shifts?")) { shifts = []; updateUI(); } }
         function addShift() {
             const h = document.getElementById('shift-hours').value;
             const type = document.getElementById('shift-type').value;
             if(!h) return;
-            shifts.push({ label: document.getElementById('shift-type').options[document.getElementById('shift-type').selectedIndex].text, multiplier: type, hours: parseFloat(h) });
+            shifts.push({ 
+                label: document.getElementById('shift-type').options[document.getElementById('shift-type').selectedIndex].text, 
+                multiplier: type, 
+                hours: parseFloat(h),
+                dateNum: 99 
+            });
             document.getElementById('shift-hours').value = ''; updateUI();
         }
         function addDeduction() {
