@@ -28,7 +28,6 @@
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Rate ($)</label>
                     <input type="number" id="base-rate-input" class="input-style font-bold mt-1">
                 </section>
-
                 <section>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Standard Shift Hours</label>
                     <div class="grid grid-cols-2 gap-3 mt-2">
@@ -42,7 +41,6 @@
                         </div>
                     </div>
                 </section>
-
                 <section>
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Penalty Multipliers</label>
                     <div class="grid grid-cols-2 gap-3 mt-2">
@@ -52,11 +50,9 @@
                         <div><span class="text-[9px] text-slate-500 font-bold uppercase">Sunday</span><input type="number" step="0.01" id="rate-sunday" class="input-style"></div>
                     </div>
                 </section>
-
                 <button onclick="saveSettings()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all">Save & Apply</button>
             </div>
         </div>
-        
         <div class="mt-8 pt-6 border-t border-slate-100">
             <button onclick="resetApp()" class="w-full bg-red-50 text-red-600 text-[10px] font-bold py-3 rounded-xl uppercase tracking-widest">Reset All Data</button>
         </div>
@@ -99,7 +95,6 @@
             </div>
             <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl">Add Shift</button>
         </div>
-        
         <div class="flex justify-between items-center mb-4 px-1">
             <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged Shifts</h4>
             <button onclick="clearShifts()" class="text-[10px] font-bold text-red-500 uppercase tracking-widest">Clear All</button>
@@ -111,12 +106,12 @@
         <div class="bento-card p-6 text-center">
             <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">📸</div>
             <h3 class="font-bold">Smart Roster Import</h3>
-            <p class="text-[10px] text-slate-400 mb-6 px-4">Detects 'Day', 'Late/LE', and 'Night' shorthand from your calendar images.</p>
+            <p class="text-[10px] text-slate-400 mb-6 px-4">AI will scan for dates and shorthand codes like 'Day', 'Late', 'LE', and 'Night'.</p>
             <input type="file" id="roster-upload" accept="image/*" class="hidden" onchange="handleRoster(event)">
             <button onclick="document.getElementById('roster-upload').click()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">Scan Roster Screenshot</button>
             <div id="scan-status" class="hidden mt-6 flex items-center justify-center gap-3 p-4 bg-slate-50 rounded-xl">
                 <div class="loading-spinner"></div>
-                <span class="text-xs font-medium text-slate-600">AI is parsing shorthand...</span>
+                <span class="text-xs font-medium text-slate-600">Reading calendar grid...</span>
             </div>
         </div>
     </div>
@@ -138,7 +133,6 @@
     </div>
 
     <script>
-        // DATA INITIALIZATION
         let shifts = JSON.parse(localStorage.getItem('nurseShifts')) || [];
         let deductions = JSON.parse(localStorage.getItem('nurseDeductions')) || [];
         let savedConfig = JSON.parse(localStorage.getItem('nurseConfig')) || {};
@@ -163,7 +157,6 @@
         }
 
         function updateUI() {
-            // Sidebar mapping
             document.getElementById('base-rate-input').value = config.baseRate;
             document.getElementById('hours-default').value = config.stdHours.default;
             document.getElementById('hours-night').value = config.stdHours.night;
@@ -206,7 +199,6 @@
             localStorage.setItem('nurseConfig', JSON.stringify(config));
         }
 
-        // ENHANCED AI SCANNER FOR HER ROSTER
         async function handleRoster(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -214,41 +206,42 @@
             
             try {
                 const { data: { text } } = await Tesseract.recognize(file, 'eng');
-                const cleanText = text.toLowerCase();
-                const lines = cleanText.split(/\s+/);
+                const lines = text.toLowerCase().split('\n');
                 let foundCount = 0;
+                let currentDay = "??"; 
 
                 const rosterMap = [
-                    { keys: ['day'], label: 'Day Shift', val: 1.0, type: 'default' },
-                    { keys: ['late', 'le'], label: 'Late Shift', val: 'afternoon', type: 'default' },
-                    { keys: ['night', '10night'], label: 'Night Shift', val: 'night', type: 'night' }
+                    { keys: ['day'], label: 'Day', val: 1.0, type: 'default' },
+                    { keys: ['late', 'le'], label: 'Late', val: 'afternoon', type: 'default' },
+                    { keys: ['night', '10night'], label: 'Night', val: 'night', type: 'night' }
                 ];
 
-                lines.forEach(word => {
+                lines.forEach(line => {
+                    const dateMatch = line.match(/\b([1-9]|[12][0-9]|3[01])\b/);
+                    if (dateMatch) currentDay = dateMatch[1];
+
                     rosterMap.forEach(p => {
-                        if (p.keys.some(k => word === k || word.includes(k))) {
+                        if (p.keys.some(k => line.includes(k))) {
                             const shiftHours = (p.type === 'night') ? config.stdHours.night : config.stdHours.default;
-                            shifts.push({ label: `AI: ${p.label}`, multiplier: p.val, hours: shiftHours });
+                            shifts.push({ 
+                                label: `${p.label} (Jan ${currentDay})`, 
+                                dateNum: parseInt(currentDay) || 99,
+                                multiplier: p.val, 
+                                hours: shiftHours 
+                            });
                             foundCount++;
                         }
                     });
                 });
 
-                if (foundCount > 0) { 
-                    updateUI(); switchTab('shifts'); 
-                    alert(`Imported ${foundCount} shifts! Check the list below.`);
-                } else {
-                    alert("Could not detect 'Day', 'Late', or 'Night' in image.");
-                }
+                shifts.sort((a, b) => (a.dateNum || 0) - (b.dateNum || 0));
+                if (foundCount > 0) { updateUI(); switchTab('shifts'); alert(`Found ${foundCount} shifts with dates!`); }
             } finally { document.getElementById('scan-status').classList.add('hidden'); }
         }
 
         function saveSettings() {
             config.baseRate = parseFloat(document.getElementById('base-rate-input').value) || 52.40;
-            config.stdHours = { 
-                default: parseFloat(document.getElementById('hours-default').value) || 8.0, 
-                night: parseFloat(document.getElementById('hours-night').value) || 10.0 
-            };
+            config.stdHours = { default: parseFloat(document.getElementById('hours-default').value) || 8.0, night: parseFloat(document.getElementById('hours-night').value) || 10.0 };
             config.penalties = {
                 afternoon: parseFloat(document.getElementById('rate-afternoon').value) || 1.125,
                 night: parseFloat(document.getElementById('rate-night').value) || 1.15,
@@ -259,20 +252,8 @@
             updateUI(); toggleSidebar();
         }
 
-        function resetApp() {
-            if (confirm("Reset everything? This wipes all shifts and settings.")) {
-                localStorage.clear();
-                location.reload();
-            }
-        }
-
-        function clearShifts() {
-            if (confirm("Clear all logged shifts?")) {
-                shifts = [];
-                updateUI();
-            }
-        }
-
+        function resetApp() { if (confirm("Reset everything? This wipes all shifts and settings.")) { localStorage.clear(); location.reload(); } }
+        function clearShifts() { if (confirm("Clear all logged shifts?")) { shifts = []; updateUI(); } }
         function addShift() {
             const h = document.getElementById('shift-hours').value;
             const type = document.getElementById('shift-type').value;
@@ -280,14 +261,12 @@
             shifts.push({ label: document.getElementById('shift-type').options[document.getElementById('shift-type').selectedIndex].text, multiplier: type, hours: parseFloat(h) });
             document.getElementById('shift-hours').value = ''; updateUI();
         }
-
         function addDeduction() {
             const c = document.getElementById('deduction-cost').value;
             if(!c) return;
             deductions.push({ type: document.getElementById('deduction-type').value, cost: parseFloat(c) });
             document.getElementById('deduction-cost').value = ''; updateUI();
         }
-
         function switchTab(t) {
             document.getElementById('view-shifts').classList.toggle('hidden', t !== 'shifts');
             document.getElementById('view-roster').classList.toggle('hidden', t !== 'roster');
@@ -296,11 +275,9 @@
             document.getElementById('tab-roster').className = t === 'roster' ? "text-xs font-bold border-b-2 border-slate-900 pb-2" : "text-xs font-bold text-slate-400 pb-2";
             document.getElementById('tab-deductions').className = t === 'deductions' ? "text-xs font-bold border-b-2 border-slate-900 pb-2" : "text-xs font-bold text-slate-400 pb-2";
         }
-
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('translate-x-full'); document.getElementById('sidebar-overlay').classList.toggle('opacity-0'); document.getElementById('sidebar-overlay').classList.toggle('pointer-events-none'); }
         function deleteItem(arr, i) { if(arr === 'shifts') shifts.splice(i, 1); else deductions.splice(i, 1); updateUI(); }
         window.onload = updateUI;
     </script>
-    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
