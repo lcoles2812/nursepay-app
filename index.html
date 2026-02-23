@@ -113,7 +113,7 @@
             <button onclick="document.getElementById('roster-upload').click()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">Select Screenshot</button>
             <div id="scan-status" class="hidden mt-6 flex items-center justify-center gap-3 p-4 bg-slate-50 rounded-xl">
                 <div class="loading-spinner"></div>
-                <span class="text-xs font-medium text-slate-600">Filtering legend items...</span>
+                <span class="text-xs font-medium text-slate-600">Checking grid boxes...</span>
             </div>
         </div>
     </div>
@@ -205,46 +205,65 @@
             
             try {
                 const { data: { text } } = await Tesseract.recognize(file, 'eng');
-                const lines = text.toLowerCase().split('\n');
-                let foundCount = 0;
-                let currentDay = null;
-
+                const rawLines = text.toLowerCase().split('\n');
+                
+                // FILTER LEGEND: Remove lines that look like a header/legend
                 const rosterMap = [
                     { keys: ['day'], label: 'Day', val: 1.0, type: 'default' },
                     { keys: ['late', 'le'], label: 'Late', val: 'afternoon', type: 'default' },
                     { keys: ['night', '10night'], label: 'Night', val: 'night', type: 'night' }
                 ];
+                
+                const lines = rawLines.filter(line => {
+                    const keywordCount = rosterMap.filter(p => p.keys.some(k => line.includes(k))).length;
+                    return keywordCount < 3; // Keep lines that aren't legend headers
+                });
+
+                let foundCount = 0;
+                let currentDay = null;
 
                 lines.forEach(line => {
-                    // LEGEND FILTER: Skip lines with too many keywords (the top part of her screenshot)
-                    const keywordCount = rosterMap.filter(p => p.keys.some(k => line.includes(k))).length;
-                    if (keywordCount > 2) return; 
-
-                    // DATE DETECTION: Only updates if a new standalone date is found
+                    // DATE DETECTION: Match standalone dates (1-31)
                     const dateMatch = line.match(/\b([1-9]|[12][0-9]|3[01])\b/);
-                    if (dateMatch) currentDay = dateMatch[1];
+                    if (dateMatch) {
+                        currentDay = dateMatch[1];
+                    }
 
-                    // SHIFT DETECTION: Only add if we have an active date context
+                    // SHIFT DETECTION: If we have a date, look for the shift code
                     if (currentDay) {
                         rosterMap.forEach(p => {
                             if (p.keys.some(k => line.includes(k))) {
                                 const shiftHours = (p.type === 'night') ? config.stdHours.night : config.stdHours.default;
-                                shifts.push({ 
-                                    label: `${p.label} (Jan ${currentDay})`, 
-                                    dateNum: parseInt(currentDay),
-                                    multiplier: p.val, 
-                                    hours: shiftHours 
-                                });
-                                foundCount++;
-                                currentDay = null; // Reset after finding shift for this day to prevent double-dipping
+                                
+                                // Avoid adding 'Off' or junk
+                                if (!line.includes('off')) {
+                                    shifts.push({ 
+                                        label: `${p.label} (Jan ${currentDay})`, 
+                                        dateNum: parseInt(currentDay),
+                                        multiplier: p.val, 
+                                        hours: shiftHours 
+                                    });
+                                    foundCount++;
+                                    currentDay = null; // Found shift for this date, reset
+                                }
                             }
                         });
                     }
                 });
 
-                shifts.sort((a, b) => a.dateNum - b.dateNum);
-                updateUI(); switchTab('shifts'); 
-            } finally { document.getElementById('scan-status').classList.add('hidden'); }
+                if (foundCount > 0) {
+                    shifts.sort((a, b) => a.dateNum - b.dateNum);
+                    updateUI(); 
+                    switchTab('shifts');
+                    alert(`Success! Imported ${foundCount} shifts.`);
+                } else {
+                    alert("No shifts found. Ensure the calendar is visible and 'Day', 'Late', or 'Night' labels are clear.");
+                }
+            } catch (e) {
+                alert("Error scanning image. Try another screenshot.");
+            } finally { 
+                document.getElementById('scan-status').classList.add('hidden'); 
+            }
         }
 
         function saveSettings() {
