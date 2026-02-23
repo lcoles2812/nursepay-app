@@ -20,45 +20,53 @@
 <body class="p-5 max-w-md mx-auto pb-32">
 
     <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 overlay opacity-0 pointer-events-none z-40"></div>
-    <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl sidebar translate-x-full p-6 overflow-y-auto">
-        <h2 class="text-xl font-bold mb-6">Settings</h2>
+    <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl sidebar translate-x-full p-6 overflow-y-auto flex flex-col">
+        <div class="flex-grow">
+            <h2 class="text-xl font-bold mb-6">Settings</h2>
+            <div class="space-y-6">
+                <section>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Rate ($)</label>
+                    <input type="number" id="base-rate-input" class="input-style font-bold mt-1">
+                </section>
+
+                <section>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Standard Shift Hours</label>
+                    <div class="grid grid-cols-2 gap-3 mt-2">
+                        <div>
+                            <span class="text-[9px] text-slate-500 font-bold uppercase">Day/Late</span>
+                            <input type="number" step="0.5" id="hours-default" class="input-style">
+                        </div>
+                        <div>
+                            <span class="text-[9px] text-slate-500 font-bold uppercase">Night</span>
+                            <input type="number" step="0.5" id="hours-night" class="input-style">
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Penalty Multipliers</label>
+                    <div class="grid grid-cols-2 gap-3 mt-2">
+                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Afternoon</span><input type="number" step="0.01" id="rate-afternoon" class="input-style"></div>
+                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Night</span><input type="number" step="0.01" id="rate-night" class="input-style"></div>
+                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Saturday</span><input type="number" step="0.01" id="rate-saturday" class="input-style"></div>
+                        <div><span class="text-[9px] text-slate-500 font-bold uppercase">Sunday</span><input type="number" step="0.01" id="rate-sunday" class="input-style"></div>
+                    </div>
+                </section>
+
+                <button onclick="saveSettings()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all">Save & Apply</button>
+            </div>
+        </div>
         
-        <div class="space-y-6">
-            <section>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Rate ($)</label>
-                <input type="number" id="base-rate-input" class="input-style font-bold mt-1">
-            </section>
-
-            <section>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Standard Shift Hours</label>
-                <div class="grid grid-cols-2 gap-3 mt-2">
-                    <div>
-                        <span class="text-[9px] text-slate-500 font-bold uppercase">Day/Aft</span>
-                        <input type="number" step="0.5" id="hours-default" class="input-style">
-                    </div>
-                    <div>
-                        <span class="text-[9px] text-slate-500 font-bold uppercase">Night</span>
-                        <input type="number" step="0.5" id="hours-night" class="input-style">
-                    </div>
-                </div>
-            </section>
-
-            <section>
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Penalty Multipliers</label>
-                <div class="grid grid-cols-2 gap-3 mt-2">
-                    <div><span class="text-[9px] text-slate-500 font-bold uppercase">Afternoon</span><input type="number" step="0.01" id="rate-afternoon" class="input-style"></div>
-                    <div><span class="text-[9px] text-slate-500 font-bold uppercase">Night</span><input type="number" step="0.01" id="rate-night" class="input-style"></div>
-                    <div><span class="text-[9px] text-slate-500 font-bold uppercase">Saturday</span><input type="number" step="0.01" id="rate-saturday" class="input-style"></div>
-                    <div><span class="text-[9px] text-slate-500 font-bold uppercase">Sunday</span><input type="number" step="0.01" id="rate-sunday" class="input-style"></div>
-                </div>
-            </section>
-
-            <button onclick="saveSettings()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all">Save & Apply</button>
+        <div class="mt-8 pt-6 border-t border-slate-100">
+            <button onclick="resetApp()" class="w-full bg-red-50 text-red-600 text-[10px] font-bold py-3 rounded-xl uppercase tracking-widest">Reset All Data</button>
         </div>
     </div>
 
     <header class="flex justify-between items-center mb-6 mt-4">
-        <div><h1 class="text-2xl font-bold">NursePay <span class="text-blue-500 text-sm">PRO</span></h1><p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">2026 Audit Tool</p></div>
+        <div>
+            <h1 class="text-2xl font-bold">NursePay <span class="text-blue-500 text-sm">PRO</span></h1>
+            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">2026 Audit Tool</p>
+        </div>
         <button onclick="toggleSidebar()" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">⚙️</button>
     </header>
 
@@ -91,40 +99,56 @@
             </div>
             <button onclick="addShift()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl">Add Shift</button>
         </div>
+        
+        <div class="flex justify-between items-center mb-4 px-1">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged Shifts</h4>
+            <button onclick="clearShifts()" class="text-[10px] font-bold text-red-500 uppercase tracking-widest">Clear All</button>
+        </div>
         <div id="shift-list" class="space-y-3"></div>
     </div>
 
     <div id="view-roster" class="hidden">
         <div class="bento-card p-6 text-center">
-            <h3 class="font-bold">Smart Import</h3>
-            <p class="text-[10px] text-slate-400 mb-4">Uses your "Standard Hours" from settings.</p>
+            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">📸</div>
+            <h3 class="font-bold">Smart Roster Import</h3>
+            <p class="text-[10px] text-slate-400 mb-6 px-4">Detects 'Day', 'Late/LE', and 'Night' shorthand from your calendar images.</p>
             <input type="file" id="roster-upload" accept="image/*" class="hidden" onchange="handleRoster(event)">
-            <button onclick="document.getElementById('roster-upload').click()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg">Scan Image</button>
-            <div id="scan-status" class="hidden mt-4 flex items-center justify-center gap-2"><div class="loading-spinner"></div><span class="text-xs">Analyzing...</span></div>
+            <button onclick="document.getElementById('roster-upload').click()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">Scan Roster Screenshot</button>
+            <div id="scan-status" class="hidden mt-6 flex items-center justify-center gap-3 p-4 bg-slate-50 rounded-xl">
+                <div class="loading-spinner"></div>
+                <span class="text-xs font-medium text-slate-600">AI is parsing shorthand...</span>
+            </div>
         </div>
     </div>
 
     <div id="view-deductions" class="hidden">
         <div class="bento-card p-5 mb-6">
-            <div class="grid grid-cols-2 gap-3 mb-3"><select id="deduction-type" class="input-style text-xs"><option>AHPRA Rego</option><option>Union Fees</option></select><input type="number" id="deduction-cost" class="input-style" placeholder="Cost"></div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <select id="deduction-type" class="input-style text-xs">
+                    <option>AHPRA Rego</option>
+                    <option>Union Fees</option>
+                    <option>Laundry</option>
+                    <option>Shoes/Equipment</option>
+                </select>
+                <input type="number" id="deduction-cost" class="input-style" placeholder="Cost ($)">
+            </div>
             <button onclick="addDeduction()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl">Log Expense</button>
         </div>
         <div id="deduction-list" class="space-y-3"></div>
     </div>
 
     <script>
-        // CRITICAL: Safety Initializer
+        // DATA INITIALIZATION
         let shifts = JSON.parse(localStorage.getItem('nurseShifts')) || [];
         let deductions = JSON.parse(localStorage.getItem('nurseDeductions')) || [];
         let savedConfig = JSON.parse(localStorage.getItem('nurseConfig')) || {};
         
-        // Merge defaults with saved config to prevent breaking if fields are missing
         let config = {
             baseRate: 52.40,
             hasHecs: false,
             stdHours: { default: 8.0, night: 10.0 },
             penalties: { afternoon: 1.125, night: 1.15, saturday: 1.5, sunday: 1.75 },
-            ...savedConfig // Overwrite with user settings if they exist
+            ...savedConfig
         };
 
         function calculateNet(grossAnnual) {
@@ -139,7 +163,7 @@
         }
 
         function updateUI() {
-            // Fill sidebar inputs from config
+            // Sidebar mapping
             document.getElementById('base-rate-input').value = config.baseRate;
             document.getElementById('hours-default').value = config.stdHours.default;
             document.getElementById('hours-night').value = config.stdHours.night;
@@ -182,31 +206,49 @@
             localStorage.setItem('nurseConfig', JSON.stringify(config));
         }
 
+        // ENHANCED AI SCANNER FOR HER ROSTER
         async function handleRoster(event) {
             const file = event.target.files[0];
             if (!file) return;
             document.getElementById('scan-status').classList.remove('hidden');
+            
             try {
                 const { data: { text } } = await Tesseract.recognize(file, 'eng');
-                const patterns = [
-                    { key: 'morning', label: 'Morning', val: 1.0, type: 'default' },
-                    { key: 'afternoon', label: 'Afternoon', val: 'afternoon', type: 'default' },
-                    { key: 'night', label: 'Night', val: 'night', type: 'night' }
+                const cleanText = text.toLowerCase();
+                const lines = cleanText.split(/\s+/);
+                let foundCount = 0;
+
+                const rosterMap = [
+                    { keys: ['day'], label: 'Day Shift', val: 1.0, type: 'default' },
+                    { keys: ['late', 'le'], label: 'Late Shift', val: 'afternoon', type: 'default' },
+                    { keys: ['night', '10night'], label: 'Night Shift', val: 'night', type: 'night' }
                 ];
-                text.toLowerCase().split('\n').forEach(line => {
-                    patterns.forEach(p => {
-                        if (line.includes(p.key)) {
-                            shifts.push({ label: `AI: ${p.label}`, multiplier: p.val, hours: p.type === 'night' ? config.stdHours.night : config.stdHours.default });
+
+                lines.forEach(word => {
+                    rosterMap.forEach(p => {
+                        if (p.keys.some(k => word === k || word.includes(k))) {
+                            const shiftHours = (p.type === 'night') ? config.stdHours.night : config.stdHours.default;
+                            shifts.push({ label: `AI: ${p.label}`, multiplier: p.val, hours: shiftHours });
+                            foundCount++;
                         }
                     });
                 });
-                updateUI(); switchTab('shifts');
+
+                if (foundCount > 0) { 
+                    updateUI(); switchTab('shifts'); 
+                    alert(`Imported ${foundCount} shifts! Check the list below.`);
+                } else {
+                    alert("Could not detect 'Day', 'Late', or 'Night' in image.");
+                }
             } finally { document.getElementById('scan-status').classList.add('hidden'); }
         }
 
         function saveSettings() {
             config.baseRate = parseFloat(document.getElementById('base-rate-input').value) || 52.40;
-            config.stdHours = { default: parseFloat(document.getElementById('hours-default').value) || 8, night: parseFloat(document.getElementById('hours-night').value) || 10 };
+            config.stdHours = { 
+                default: parseFloat(document.getElementById('hours-default').value) || 8.0, 
+                night: parseFloat(document.getElementById('hours-night').value) || 10.0 
+            };
             config.penalties = {
                 afternoon: parseFloat(document.getElementById('rate-afternoon').value) || 1.125,
                 night: parseFloat(document.getElementById('rate-night').value) || 1.15,
@@ -215,6 +257,20 @@
             };
             localStorage.setItem('nurseConfig', JSON.stringify(config));
             updateUI(); toggleSidebar();
+        }
+
+        function resetApp() {
+            if (confirm("Reset everything? This wipes all shifts and settings.")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        function clearShifts() {
+            if (confirm("Clear all logged shifts?")) {
+                shifts = [];
+                updateUI();
+            }
         }
 
         function addShift() {
